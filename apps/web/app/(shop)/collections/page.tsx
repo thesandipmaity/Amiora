@@ -1,0 +1,57 @@
+import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { createServerClient } from '@amiora/database'
+
+export const metadata: Metadata = {
+  title: 'Collections',
+  description: 'Explore all AMIORA jewellery collections.',
+}
+
+export const revalidate = 300
+
+export default async function CollectionsPage() {
+  const supabase = createServerClient()
+  type CollRow = { id: string; name: string; slug: string; description: string | null; banner_url: string | null }
+  const { data: rawCollections } = await supabase
+    .from('collections')
+    .select('id, name, slug, description, banner_url')
+    .eq('is_active', true)
+    .order('sort_order')
+  const collections = (rawCollections ?? []) as CollRow[]
+
+  return (
+    <div className="section-x py-14">
+      <div className="text-center mb-12">
+        <p className="text-2xs uppercase tracking-widest2 text-teal mb-3">Explore</p>
+        <h1 className="font-display text-display-2xl text-ink">Our Collections</h1>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {collections.map((col) => (
+          <Link
+            key={col.slug}
+            href={`/collections/${col.slug}`}
+            className="group relative block aspect-[3/4] rounded-2xl overflow-hidden bg-surface"
+          >
+            {col.banner_url && (
+              <Image
+                src={col.banner_url}
+                alt={col.name}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                sizes="(max-width: 640px) 100vw, 33vw"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-deep-teal/70 via-transparent to-transparent" />
+            <div className="absolute bottom-0 left-0 p-6">
+              <h2 className="font-display text-2xl text-white">{col.name}</h2>
+              {col.description && (
+                <p className="mt-1 text-sm text-cream/70 line-clamp-2">{col.description}</p>
+              )}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}

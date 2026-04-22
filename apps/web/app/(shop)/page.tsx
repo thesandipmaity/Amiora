@@ -1,0 +1,104 @@
+import type { Metadata } from 'next'
+import { createServerClient } from '@amiora/database'
+
+const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.amioradiamonds.in'
+
+export const metadata: Metadata = {
+  title: 'AMIORA Jewellery — Premium Gold, Silver & Diamond Jewelry',
+  description: 'Discover AMIORA\'s exclusive collection of handcrafted gold, silver and diamond jewellery. Live pricing, custom orders, and free shipping across India.',
+  openGraph: {
+    title: 'AMIORA Jewellery — Premium Gold, Silver & Diamond Jewelry',
+    description: 'Explore exquisite handcrafted jewellery with live pricing and personalised service.',
+    url: BASE,
+    type: 'website',
+    images: [{ url: `${BASE}/og-home.jpg`, width: 1200, height: 630 }],
+  },
+  twitter: { card: 'summary_large_image' },
+  alternates: { canonical: BASE },
+}
+
+export const revalidate = 300
+import { HeroBanner }          from '@/components/sections/HeroBanner'
+import { MarqueeStrip }        from '@/components/sections/MarqueeStrip'
+import { PriceTicker }         from '@/components/sections/PriceTicker'
+import { FeaturedCollections } from '@/components/sections/FeaturedCollections'
+import { ProductGridSection }  from '@/components/sections/ProductGridSection'
+import { MaterialShowcase }    from '@/components/sections/MaterialShowcase'
+import { CustomizationCTA }    from '@/components/sections/CustomizationCTA'
+import { Testimonials }        from '@/components/sections/Testimonials'
+import { BlogPreview }         from '@/components/sections/BlogPreview'
+import { StoreLocatorTeaser }  from '@/components/sections/StoreLocatorTeaser'
+import { calculateVariantPrice } from '@/lib/pricing/calculator'
+import { getLatestPrices }     from '@/lib/pricing/engine'
+
+export default async function HomePage() {
+  const supabase = createServerClient()
+
+  // Fetch all homepage data in parallel
+  const [
+    { data: collections },
+    { data: newArrivalRows },
+    { data: bestSellerRows },
+    { data: testimonials },
+    { data: blogs },
+    { data: stores },
+    prices,
+  ] = await Promise.all([
+    supabase.from('collections').select('id,name,slug,banner_url,description').eq('is_active', true).order('sort_order').limit(4),
+    supabase.from('products').select('id,name,slug,making_charge_pct,product_images(*),product_variants(*)').eq('is_active', true).order('created_at', { ascending: false }).limit(10),
+    supabase.from('products').select('id,name,slug,making_charge_pct,product_images(*),product_variants(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(10),
+    supabase.from('testimonials').select('id,name,location,quote,rating').eq('is_featured', true).order('sort_order').limit(8),
+    supabase.from('blogs').select('id,title,slug,excerpt,cover_url,tags,published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),
+    supabase.from('stores').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    getLatestPrices(),
+  ])
+
+  // Attach live prices to product cards
+  const attachPrice = (rows: typeof newArrivalRows) =>
+    (rows ?? []).map((p) => {
+      const firstVariant = p.product_variants?.[0]
+      const basePrice = firstVariant?.weight_grams
+        ? calculateVariantPrice({
+            weightGrams:         firstVariant.weight_grams,
+            purity:              firstVariant.purity,
+            livePricePerGram999: firstVariant.purity === '92.5'
+              ? (prices.silver?.pricePerGram ?? 90)
+              : (prices.gold?.pricePerGram ?? 7200),
+            makingChargePct:  p.making_charge_pct,
+            gemPriceOverride: firstVariant.gem_price_override,
+          }).finalPrice
+        : 0
+      return { ...p, basePrice }
+    })
+
+  const newArrivals = attachPrice(newArrivalRows)
+  const bestSellers = attachPrice(bestSellerRows)
+
+  const storeCount = (stores as unknown as { count?: number })?.count ?? 3
+
+  return (
+    <>
+      <HeroBanner />
+      <MarqueeStrip />
+      <PriceTicker />
+      <FeaturedCollections collections={collections ?? []} />
+      <ProductGridSection
+        heading="New Arrivals"
+        viewAllHref="/shop?sort=newest"
+        products={newArrivals as Parameters<typeof ProductGridSection>[0]['products']}
+        columns={5}
+      />
+      <MaterialShowcase />
+      <ProductGridSection
+        heading="Best Sellers"
+        viewAllHref="/shop?sort=popular"
+        products={bestSellers as Parameters<typeof ProductGridSection>[0]['products']}
+        columns={5}
+      />
+      <CustomizationCTA />
+      <Testimonials testimonials={testimonials ?? []} />
+      <BlogPreview posts={blogs ?? []} />
+      <StoreLocatorTeaser storeCount={storeCount} />
+    </>
+  )
+}

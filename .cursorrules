@@ -1,0 +1,5 @@
+Project: Amiora Diamonds (Premium Jewelry E-commerce)
+Stack: Next.js 15, Supabase (24 Tables), Tailwind, Shadcn/UI, GSAP.
+Core Logic: Real-time Gold/Silver pricing engine, Multi-variant inventory.
+Instruction: Always follow the modular session structure provided in .md files. 
+Keep code "Extra Premium" with smooth animations.

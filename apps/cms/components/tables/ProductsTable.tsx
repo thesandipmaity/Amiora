@@ -1,0 +1,161 @@
+'use client'
+
+import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Search, Filter, Edit2, Trash2, ExternalLink } from 'lucide-react'
+import { Badge } from '@/components/ui/Badge'
+import { toast } from 'sonner'
+
+interface Product {
+  id: string
+  name: string
+  slug: string
+  is_featured: boolean
+  is_active: boolean
+  created_at: string
+  collection?: { name: string } | null
+  category?:   { name: string } | null
+  images?:  { url: string; is_primary: boolean }[]
+  variants?: { id: string }[]
+}
+
+interface Props {
+  products:    Product[]
+  collections: { id: string; name: string }[]
+  categories:  { id: string; name: string }[]
+}
+
+export function ProductsTable({ products, collections, categories }: Props) {
+  const [search, setSearch] = useState('')
+  const [filterCollection, setFilterCollection] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const filtered = products.filter(p => {
+    const q = search.toLowerCase()
+    if (q && !p.name.toLowerCase().includes(q) && !p.slug.includes(q)) return false
+    if (filterCollection && p.collection?.name !== filterCollection) return false
+    if (filterStatus === 'active' && !p.is_active) return false
+    if (filterStatus === 'inactive' && p.is_active) return false
+    return true
+  })
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
+    setDeleting(id)
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      toast.success(`${name} deleted`)
+      window.location.reload()
+    } catch {
+      toast.error('Failed to delete product')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-divider overflow-hidden">
+      {/* Toolbar */}
+      <div className="px-5 py-4 border-b border-divider flex flex-col sm:flex-row gap-3">
+        <div className="flex items-center gap-2 bg-surface rounded-lg px-3 py-2 flex-1">
+          <Search className="w-3.5 h-3.5 text-ink-faint" />
+          <input
+            placeholder="Search by name or slug…"
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="bg-transparent outline-none text-sm flex-1 placeholder:text-ink-faint"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-3.5 h-3.5 text-ink-faint" />
+          <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-surface border border-divider rounded-lg px-3 py-2 text-sm outline-none text-ink-muted">
+            <option value="">All Collections</option>
+            {collections.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="bg-surface border border-divider rounded-lg px-3 py-2 text-sm outline-none text-ink-muted">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-divider bg-surface">
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium w-12"></th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Name</th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Collection</th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Variants</th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Status</th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Created</th>
+              <th className="px-5 py-3 text-left text-xs text-ink-faint font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-divider">
+            {filtered.map(p => {
+              const primary = p.images?.find(img => img.is_primary) ?? p.images?.[0]
+              return (
+                <tr key={p.id} className="hover:bg-surface/50 transition-colors">
+                  <td className="px-5 py-3">
+                    {primary ? (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface-2">
+                        <Image src={primary.url} alt={p.name} fill className="object-cover" sizes="40px" />
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-surface-2" />
+                    )}
+                  </td>
+                  <td className="px-5 py-3">
+                    <p className="font-medium text-ink">{p.name}</p>
+                    <p className="text-xs text-ink-faint">{p.slug}</p>
+                    {p.is_featured && <Badge variant="info" className="mt-1">Featured</Badge>}
+                  </td>
+                  <td className="px-5 py-3 text-ink-muted">{p.collection?.name ?? '—'}</td>
+                  <td className="px-5 py-3">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-surface rounded-full text-xs font-medium text-ink-muted">
+                      {p.variants?.length ?? 0}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge variant={p.is_active ? 'success' : 'default'}>{p.is_active ? 'Active' : 'Inactive'}</Badge>
+                  </td>
+                  <td className="px-5 py-3 text-ink-muted text-xs">{new Date(p.created_at).toLocaleDateString('en-IN')}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <Link href={`/products/${p.id}`} className="p-1.5 rounded-lg hover:bg-surface text-ink-muted hover:text-teal transition-colors" title="Edit">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Link>
+                      <a href={`${process.env.NEXT_PUBLIC_STOREFRONT_URL}/products/${p.slug}`} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg hover:bg-surface text-ink-muted hover:text-teal transition-colors" title="View on storefront">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        onClick={() => handleDelete(p.id, p.name)}
+                        disabled={deleting === p.id}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-ink-muted hover:text-red-600 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} className="px-5 py-10 text-center text-ink-faint">No products found</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="px-5 py-3 border-t border-divider text-xs text-ink-faint">
+        Showing {filtered.length} of {products.length} products
+      </div>
+    </div>
+  )
+}

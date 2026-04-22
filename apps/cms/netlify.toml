@@ -1,0 +1,32 @@
+# ─── Amiora CMS — Netlify Config ──────────────────────────────────────────────
+# Netlify Dashboard settings:
+#   Repository  : same repo
+#   Base dir    : apps/cms
+#   Build cmd   : (leave blank — this file handles it)
+#   Publish dir : .next
+# ──────────────────────────────────────────────────────────────────────────────
+
+[build]
+  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @amiora/cms build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION            = "20"
+  PNPM_VERSION            = "9.15.0"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# ─── Headers ──────────────────────────────────────────────────────────────────
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
