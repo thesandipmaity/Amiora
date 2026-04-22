@@ -76,37 +76,39 @@ export default async function ProductPage({ params }: Props) {
   type ReviewRow    = { id: string; reviewer_name: string | null; rating: number; title: string | null; body: string | null; created_at: string; is_verified_purchase: boolean }
 
   const [reviewsRes, smartPairsRes] = await Promise.all([
-    supabase
-      .from('reviews')
-      .select('id, reviewer_name, rating, title, body, created_at, is_verified_purchase')
-      .eq('product_id', product.id)
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false })
-      .then(r => r.data ?? [])
-      .catch(() => [] as ReviewRow[]),
-    supabase
-      .from('smart_pairs')
-      .select('paired_product_id')
-      .eq('product_id', product.id)
-      .limit(6)
-      .then(r => ((r.data ?? []) as SmartPairRow[]).map(x => x.paired_product_id).filter(Boolean))
-      .catch(() => [] as string[]),
+    Promise.resolve(
+      supabase
+        .from('reviews')
+        .select('id, reviewer_name, rating, title, body, created_at, is_verified_purchase')
+        .eq('product_id', product.id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+    ).then(r => (r.data ?? []) as ReviewRow[]).catch(() => [] as ReviewRow[]),
+
+    Promise.resolve(
+      supabase
+        .from('smart_pairs')
+        .select('paired_product_id')
+        .eq('product_id', product.id)
+        .limit(6)
+    ).then(r => ((r.data ?? []) as SmartPairRow[]).map(x => x.paired_product_id).filter(Boolean))
+     .catch(() => [] as string[]),
   ])
 
-  const reviews             = reviewsRes as ReviewRow[]
-  const smartPairProductIds = smartPairsRes as string[]
+  const reviews             = reviewsRes
+  const smartPairProductIds = smartPairsRes
 
   // ── Round 3: Paired products (conditional, smart-pair IDs known) ────────────
   type PairedProduct = { id: string; name: string; slug: string; making_charge_pct: number; product_images: { url: string; is_primary: boolean }[]; product_variants: { purity: string; weight_grams: number | null; gem_price_override: number | null }[] }
   let pairedProducts: PairedProduct[] = []
   if (smartPairProductIds.length) {
-    pairedProducts = await supabase
-      .from('products')
-      .select('id, name, slug, making_charge_pct, product_images(*), product_variants(purity, weight_grams, gem_price_override)')
-      .in('id', smartPairProductIds)
-      .eq('is_active', true)
-      .then(r => (r.data ?? []) as PairedProduct[])
-      .catch(() => [])
+    pairedProducts = await Promise.resolve(
+      supabase
+        .from('products')
+        .select('id, name, slug, making_charge_pct, product_images(*), product_variants(purity, weight_grams, gem_price_override)')
+        .in('id', smartPairProductIds)
+        .eq('is_active', true)
+    ).then(r => (r.data ?? []) as PairedProduct[]).catch(() => [])
   }
 
   const goldPrice   = (prices as { gold?: { pricePerGram: number } | null }).gold?.pricePerGram   ?? 7200
