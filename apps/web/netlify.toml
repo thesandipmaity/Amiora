@@ -1,39 +1,24 @@
 # ─── Amiora Storefront — Netlify Config ───────────────────────────────────────
-# Netlify Dashboard settings:
-#   Repository  : same repo
-#   Base dir    : apps/web
-#   Build cmd   : (leave blank — this file handles it)
-#   Publish dir : .next
+# Netlify Dashboard:
+#   Base directory  : apps/web
+#   Build command   : (leave blank)
+#   Publish directory: .next
 # ──────────────────────────────────────────────────────────────────────────────
 
 [build]
-  # Navigate to monorepo root → install all workspace deps → build only web
-  command = "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @amiora/web build"
+  command = "pnpm install --frozen-lockfile && pnpm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION            = "20"
-  PNPM_VERSION            = "9.15.0"
+  PNPM_VERSION            = "9"
   NEXT_TELEMETRY_DISABLED = "1"
-  # All NEXT_PUBLIC_* and server secrets must be set in
-  # Netlify Dashboard → Site → Environment Variables
 
-# @netlify/plugin-nextjs handles:
-#   • Server Components / SSR
-#   • API Routes → Netlify Functions
-#   • Image Optimization
-#   • All routing / redirects (no manual rules needed)
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# ─── Headers ──────────────────────────────────────────────────────────────────
 [[headers]]
   for = "/_next/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/fonts/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
@@ -42,4 +27,3 @@
   [headers.values]
     X-Frame-Options        = "DENY"
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy        = "strict-origin-when-cross-origin"
