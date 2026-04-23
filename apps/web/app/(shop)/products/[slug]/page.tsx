@@ -52,7 +52,7 @@ export default async function ProductPage({ params }: Props) {
         id, name, slug, short_description, description, making_charge_pct,
         collection:collections(id, name, slug),
         category:categories(id, name, slug),
-        product_images(*),
+        product_images(id, url, alt_text, sort_order, variant_id, is_primary),
         product_variants(
           id, purity, weight_grams, gem_weight_ct, gem_price_override, stock_status, is_active,
           metal_variant_id, gem_variant_id,
@@ -136,8 +136,15 @@ export default async function ProductPage({ params }: Props) {
     : 0
 
   // ── JSON-LD ───────────────────────────────────────────────────────────────
-  const imgs       = (product.product_images ?? []) as { url: string; is_primary: boolean }[]
-  const primaryImg = imgs.find(i => i.is_primary)?.url ?? imgs[0]?.url
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const imgs = ((product.product_images ?? []) as any[]).map((img: any, idx: number) => ({
+    id:         String(img.id        ?? `img-${idx}`),
+    url:        String(img.url       ?? ''),
+    alt_text:   img.alt_text != null  ? String(img.alt_text) : null,
+    sort_order: Number(img.sort_order ?? idx),
+    variant_id: img.variant_id != null ? String(img.variant_id) : null,
+  }))
+  const primaryImg = (product.product_images as any[])?.find((i: any) => i.is_primary)?.url ?? imgs[0]?.url
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type':    'Product',
