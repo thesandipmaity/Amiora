@@ -131,8 +131,12 @@ export default async function ProductPage({ params }: Props) {
   }) as Parameters<typeof ProductCard>[0]['product'][]
 
   // ── Review stats ──────────────────────────────────────────────────────────
-  const avgRating = reviews.length
-    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+  const safeReviews = (reviews ?? []).map(r => ({
+    ...r,
+    reviewer_name: r.reviewer_name ?? 'Anonymous',
+  }))
+  const avgRating = safeReviews.length
+    ? safeReviews.reduce((s, r) => s + r.rating, 0) / safeReviews.length
     : 0
 
   // ── JSON-LD ───────────────────────────────────────────────────────────────
@@ -153,11 +157,11 @@ export default async function ProductPage({ params }: Props) {
     image:       primaryImg ?? '',
     url:         `${BASE}/products/${slug}`,
     brand:       { '@type': 'Brand', name: 'AMIORA' },
-    ...(reviews.length > 0 && {
+    ...(safeReviews.length > 0 && {
       aggregateRating: {
         '@type':      'AggregateRating',
         ratingValue:  avgRating.toFixed(1),
-        reviewCount:  reviews.length,
+        reviewCount:  safeReviews.length,
         bestRating:   5,
         worstRating:  1,
       },
@@ -213,7 +217,7 @@ export default async function ProductPage({ params }: Props) {
           short_description: product.short_description,
           making_charge_pct: product.making_charge_pct,
           avgRating,
-          reviewCount:    reviews.length,
+          reviewCount:    safeReviews.length,
           collectionName: (product.collection as unknown as { name: string } | null)?.name ?? null,
           collectionSlug: (product.collection as unknown as { slug: string } | null)?.slug ?? null,
           categoryName:   (product.category   as unknown as { name: string } | null)?.name ?? null,
@@ -236,8 +240,8 @@ export default async function ProductPage({ params }: Props) {
       )}
 
       <ReviewsSection
-        reviews={reviews}
-        total={reviews.length}
+        reviews={safeReviews}
+        total={safeReviews.length}
         avgRating={avgRating}
       />
     </>
