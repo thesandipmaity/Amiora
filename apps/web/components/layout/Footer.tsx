@@ -15,9 +15,10 @@ export function Footer() {
   return (
     <footer className="bg-deep-teal text-cream/80">
       {/* Main grid */}
-      <div className="section-x py-16 grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Brand column */}
-        <div className="lg:col-span-1">
+      <div className="section-x py-16 grid gap-12 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+
+        {/* Brand column — full width on mobile */}
+        <div className="sm:col-span-2 lg:col-span-1">
           <p className="font-display text-3xl text-cream tracking-widest mb-4">AMIORA</p>
           <p className="text-sm leading-relaxed text-cream/60 max-w-xs">
             Handcrafted jewellery with live gold & silver pricing. BIS Hallmarked, certified diamonds,
@@ -36,42 +37,45 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Shop */}
-        <div>
-          <h4 className="mb-4 text-2xs uppercase tracking-widest2 text-gold">Shop</h4>
-          <ul className="space-y-2.5">
-            {SHOP_LINKS.map((item) => (
-              <li key={item}>
-                <Link
-                  href={`/categories/${item.toLowerCase()}`}
-                  className="text-sm text-cream/60 hover:text-cream transition-colors"
-                >
-                  {item}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {/* Shop + Company — side by side on mobile, separate columns on lg */}
+        <div className="sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-8">
+          {/* Shop */}
+          <div>
+            <h4 className="mb-4 text-2xs uppercase tracking-widest2 text-gold">Shop</h4>
+            <ul className="space-y-2.5">
+              {SHOP_LINKS.map((item) => (
+                <li key={item}>
+                  <Link
+                    href={`/categories/${item.toLowerCase()}`}
+                    className="text-sm text-cream/60 hover:text-cream transition-colors"
+                  >
+                    {item}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 className="mb-4 text-2xs uppercase tracking-widest2 text-gold">Company</h4>
+            <ul className="space-y-2.5">
+              {POLICY_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-cream/60 hover:text-cream transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Company */}
-        <div>
-          <h4 className="mb-4 text-2xs uppercase tracking-widest2 text-gold">Company</h4>
-          <ul className="space-y-2.5">
-            {POLICY_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="text-sm text-cream/60 hover:text-cream transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div>
+        {/* Contact — centered on mobile */}
+        <div className="sm:col-span-2 lg:col-span-1 text-center lg:text-left">
           <h4 className="mb-4 text-2xs uppercase tracking-widest2 text-gold">Contact</h4>
           <address className="not-italic space-y-3 text-sm text-cream/60">
             <p>+91 98765-43210</p>
@@ -88,6 +92,7 @@ export function Footer() {
             Find Our Stores →
           </Link>
         </div>
+
       </div>
 
       {/* Bottom bar */}
