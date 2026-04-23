@@ -55,6 +55,7 @@ export default async function ProductPage({ params }: Props) {
         product_images(*),
         product_variants(
           id, purity, weight_grams, gem_weight_ct, gem_price_override, stock_status, is_active,
+          metal_variant_id, gem_variant_id,
           metal_variant:metal_variants(variant_name),
           gem_variant:gem_variants(cut_name),
           sizes:product_sizes(*)
