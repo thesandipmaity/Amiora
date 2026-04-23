@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3001'] },
+    serverActions: { allowedOrigins: ['localhost:3001', '*.netlify.app', process.env.NEXT_PUBLIC_CMS_URL ?? ''] },
     // Reduce bundle size for heavy UI/icon packages
     optimizePackageImports: ['@amiora/ui', 'lucide-react', 'recharts', 'framer-motion'],
   },
