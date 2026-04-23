@@ -157,6 +157,44 @@ export default async function ProductPage({ params }: Props) {
     }),
   }
 
+  // Explicit type that matches VariantSelector's Variant interface exactly
+  type NormalizedVariant = {
+    id:                 string
+    purity:             string
+    metal_variant_id:   string | null
+    gem_variant_id:     string | null
+    weight_grams:       number | null
+    gem_price_override: number | null
+    gem_weight_ct:      number | null
+    stock_status:       string
+    metal_variant:      { variant_name: string } | null
+    gem_variant:        { cut_name: string }     | null
+    sizes:              { size_label: string; in_stock: boolean }[]
+  }
+
+  // Supabase returns foreign-key joins as arrays — normalize to single objects
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizedVariants: NormalizedVariant[] = (product.product_variants ?? []).map((v: any): NormalizedVariant => {
+    const rawMetal = Array.isArray(v.metal_variant) ? v.metal_variant[0] : v.metal_variant
+    const rawGem   = Array.isArray(v.gem_variant)   ? v.gem_variant[0]   : v.gem_variant
+
+    return {
+      id:                 String(v.id   ?? ''),
+      purity:             String(v.purity ?? ''),
+      metal_variant_id:   v.metal_variant_id   != null ? String(v.metal_variant_id)   : null,
+      gem_variant_id:     v.gem_variant_id     != null ? String(v.gem_variant_id)     : null,
+      weight_grams:       v.weight_grams       != null ? Number(v.weight_grams)       : null,
+      gem_price_override: v.gem_price_override != null ? Number(v.gem_price_override) : null,
+      gem_weight_ct:      v.gem_weight_ct      != null ? Number(v.gem_weight_ct)      : null,
+      stock_status:       String(v.stock_status ?? 'in_stock'),
+      metal_variant:      rawMetal ? { variant_name: String(rawMetal.variant_name ?? '') } : null,
+      gem_variant:        rawGem   ? { cut_name:     String(rawGem.cut_name       ?? '') } : null,
+      sizes: Array.isArray(v.sizes)
+        ? v.sizes.map((s: any) => ({ size_label: String(s.size_label ?? ''), in_stock: Boolean(s.in_stock) }))
+        : [],
+    }
+  })
+
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -173,7 +211,7 @@ export default async function ProductPage({ params }: Props) {
           collectionSlug: (product.collection as unknown as { slug: string } | null)?.slug ?? null,
           categoryName:   (product.category   as unknown as { name: string } | null)?.name ?? null,
         }}
-        variants={product.product_variants ?? []}
+        variants={normalizedVariants}
         images={imgs}
       />
 
