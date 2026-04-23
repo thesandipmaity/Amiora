@@ -27,7 +27,7 @@ export function MobileFilterDrawer() {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 left-0 bottom-0 z-50 w-80 bg-bg p-6 overflow-y-auto transition-transform duration-300 ease-premium ${
+        className={`fixed top-0 left-0 bottom-0 z-50 w-[min(20rem,100vw)] bg-bg p-6 overflow-y-auto transition-transform duration-300 ease-premium ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

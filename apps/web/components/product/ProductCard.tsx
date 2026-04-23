@@ -138,11 +138,13 @@ export function ProductCard({ product, badgeLabel, className }: ProductCardProps
           </button>
         </div>
 
-        {/* Bottom CTAs — slide up on hover */}
+        {/* Bottom CTAs — always visible on touch/mobile, slide up on hover on desktop */}
         <div
           className={cn(
             'absolute bottom-0 left-0 right-0 flex flex-col gap-1.5 p-3 transition-all duration-300 pointer-events-auto',
-            hovered ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+            // On mobile (touch): always visible. On md+: hover-controlled
+            'md:translate-y-4 md:opacity-0',
+            hovered && 'md:translate-y-0 md:opacity-100'
           )}
         >
           <button
@@ -154,7 +156,7 @@ export function ProductCard({ product, badgeLabel, className }: ProductCardProps
           </button>
           <button
             type="button"
-            className="flex items-center justify-center gap-2 w-full py-2 bg-bg/90 backdrop-blur-sm text-ink text-xs font-medium uppercase tracking-widest rounded-md hover:bg-surface transition-colors"
+            className="hidden md:flex items-center justify-center gap-2 w-full py-2 bg-bg/90 backdrop-blur-sm text-ink text-xs font-medium uppercase tracking-widest rounded-md hover:bg-surface transition-colors"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(`/products/${product.slug}`) }}
           >
             <Eye className="h-3.5 w-3.5" />

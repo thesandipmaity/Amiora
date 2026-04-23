@@ -69,7 +69,7 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
               animate={{ opacity: 1, x: 0 }}
               exit={  { opacity: 0, x: dir * -60 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="text-center px-8"
+              className="text-center px-12 sm:px-8"
             >
               <StarRating rating={current.rating} size="md" showCount={false} className="justify-center mb-6" />
               <blockquote className="font-display text-xl md:text-2xl text-ink leading-relaxed mb-6">
@@ -84,18 +84,20 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
             </motion.div>
           </AnimatePresence>
 
-          {/* Arrows */}
+          {/* Arrows — pushed to edges, won't overlap text */}
           <button
             onClick={() => goTo(idx - 1, -1)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 p-2 text-ink-muted hover:text-deep-teal transition-colors"
+            aria-label="Previous testimonial"
+            className="absolute left-0 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 text-ink-muted hover:text-deep-teal transition-colors"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
           <button
             onClick={() => goTo(idx + 1, 1)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-ink-muted hover:text-deep-teal transition-colors"
+            aria-label="Next testimonial"
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 text-ink-muted hover:text-deep-teal transition-colors"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 

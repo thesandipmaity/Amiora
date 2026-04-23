@@ -51,7 +51,7 @@ export function HeroBanner() {
   }
 
   return (
-    <section ref={containerRef} className="relative h-[100dvh] min-h-[600px] overflow-hidden">
+    <section ref={containerRef} className="relative h-[100dvh] min-h-[500px] sm:min-h-[600px] overflow-hidden">
 
       {/* ── Background video ── */}
       <div className="hero-parallax-video absolute inset-0 scale-110">
@@ -112,7 +112,7 @@ export function HeroBanner() {
       <button
         onClick={toggleMute}
         aria-label={muted ? 'Unmute video' : 'Mute video'}
-        className="absolute bottom-8 right-8 z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/60 transition-all text-xs uppercase tracking-widest"
+        className="absolute bottom-6 right-4 sm:bottom-8 sm:right-8 z-20 flex items-center gap-2 px-3 py-2 rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/60 transition-all text-xs uppercase tracking-widest pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
       >
         {muted
           ? <><VolumeX className="h-4 w-4" /><span>Unmute</span></>
@@ -120,8 +120,8 @@ export function HeroBanner() {
         }
       </button>
 
-      {/* ── Scroll cue ── */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 pointer-events-none">
+      {/* ── Scroll cue — hidden on short viewports to avoid overlap with mute btn ── */}
+      <div className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 opacity-50 pointer-events-none">
         <div className="h-10 w-px bg-cream/50 animate-pulse" />
         <p className="text-2xs uppercase tracking-widest2 text-cream rotate-90 origin-center mt-4">Scroll</p>
       </div>

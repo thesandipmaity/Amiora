@@ -48,14 +48,14 @@ export function ProductGridSection({
       viewport={{ once: true, margin: '-60px' }}
     >
       {/* Header */}
-      <motion.div variants={fadeUp} className="flex items-end justify-between mb-10">
+      <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-10">
         <div>
           <p className="text-2xs uppercase tracking-widest2 text-teal mb-2">Curated</p>
           <h2 className="font-display text-display-2xl text-ink">{heading}</h2>
         </div>
         <Link
           href={viewAllHref}
-          className="text-sm text-teal hover:text-deep-teal transition-colors underline-offset-4 hover:underline"
+          className="text-sm text-teal hover:text-deep-teal transition-colors underline-offset-4 hover:underline shrink-0"
         >
           View All →
         </Link>

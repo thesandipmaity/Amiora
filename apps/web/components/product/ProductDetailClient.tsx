@@ -193,12 +193,12 @@ export function ProductDetailClient({ product, variants, images }: ProductDetail
 
           {/* Description tabs */}
           <div>
-            <div className="flex gap-0 border-b border-divider">
+            <div className="flex gap-0 border-b border-divider overflow-x-auto hide-scrollbar">
               {TABS.map((tab, i) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(i)}
-                  className={`px-4 py-2.5 text-sm transition-colors border-b-2 -mb-px ${
+                  className={`px-3 sm:px-4 py-2.5 text-xs sm:text-sm whitespace-nowrap shrink-0 transition-colors border-b-2 -mb-px ${
                     activeTab === i
                       ? 'border-teal text-teal font-medium'
                       : 'border-transparent text-ink-muted hover:text-ink'
