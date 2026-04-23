@@ -21,13 +21,9 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@amiora/ui', 'lucide-react', 'framer-motion'],
   },
 
-  // Compress responses
+  output: 'standalone',
   compress: true,
-
-  // Reduce build output noise
-  logging: {
-    fetches: { fullUrl: false },
-  },
+  logging: { fetches: { fullUrl: false } },
 }
 
 export default nextConfig

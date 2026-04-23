@@ -14,11 +14,12 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3001', '*.netlify.app', process.env.NEXT_PUBLIC_CMS_URL ?? ''] },
+    serverActions: { allowedOrigins: ['localhost:3001', '*.netlify.app', '*.hostinger.com', process.env.NEXT_PUBLIC_CMS_URL ?? ''] },
     // Reduce bundle size for heavy UI/icon packages
     optimizePackageImports: ['@amiora/ui', 'lucide-react', 'recharts', 'framer-motion'],
   },
 
+  output: 'standalone',
   compress: true,
   logging: { fetches: { fullUrl: false } },
 }
