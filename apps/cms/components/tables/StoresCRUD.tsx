@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Edit2, Trash2, Save, X, MapPin, Phone, Clock, Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import Image from 'next/image'
+import { Plus, Edit2, Trash2, Save, X, MapPin, Phone, Clock, Loader2, ImagePlus, Link as LinkIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { toast } from 'sonner'
 
@@ -39,9 +40,36 @@ function normalizeTimings(raw: Timings | string | null | undefined): Timings {
 }
 
 export function StoresCRUD({ stores: initial }: { stores: Store[] }) {
-  const [stores, setStores]   = useState<Store[]>(initial)
-  const [editing, setEditing] = useState<Partial<Store> | null>(null)
-  const [saving, setSaving]   = useState(false)
+  const [stores, setStores]     = useState<Store[]>(initial)
+  const [editing, setEditing]   = useState<Partial<Store> | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [urlMode, setUrlMode]   = useState(false)
+  const fileInputRef            = useRef<HTMLInputElement>(null)
+
+  async function uploadImage(file: File) {
+    setUploading(true)
+    try {
+      // Get signed upload params
+      const sigRes = await fetch('/api/upload?folder=amiora/stores')
+      const { signature, timestamp, folder, cloud_name, api_key } = await sigRes.json()
+      const form = new FormData()
+      form.append('file', file)
+      form.append('signature', signature)
+      form.append('timestamp', String(timestamp))
+      form.append('folder', folder)
+      form.append('api_key', api_key)
+      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, { method: 'POST', body: form })
+      const upJson = await upRes.json()
+      if (!upRes.ok) throw new Error(upJson.error?.message ?? 'Upload failed')
+      setEditing(prev => ({ ...prev!, image_url: upJson.secure_url }))
+      toast.success('Image uploaded!')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   function openNew() {
     setEditing({ is_active: true, timings: emptyTimings() })
@@ -112,7 +140,19 @@ export function StoresCRUD({ stores: initial }: { stores: Store[] }) {
             const today   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()]
             const todayHours = timings[today] ?? null
             return (
-              <div key={s.id} className="bg-white rounded-xl border border-divider p-5 space-y-3">
+              <div key={s.id} className="bg-white rounded-xl border border-divider overflow-hidden">
+                {/* Store image thumbnail */}
+                {s.image_url ? (
+                  <div className="relative h-36 w-full bg-surface">
+                    <Image src={s.image_url} alt={s.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+                  </div>
+                ) : (
+                  <div className="h-24 w-full bg-gradient-to-br from-light-teal/20 to-cream flex items-center justify-center">
+                    <ImagePlus className="w-6 h-6 text-ink-faint" />
+                  </div>
+                )}
+
+                <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-deep-teal/10 rounded-lg shrink-0 mt-0.5">
@@ -157,6 +197,7 @@ export function StoresCRUD({ stores: initial }: { stores: Store[] }) {
                   >
                     <Trash2 className="w-3 h-3" /> Delete
                   </button>
+                </div>
                 </div>
               </div>
             )
@@ -207,6 +248,66 @@ export function StoresCRUD({ stores: initial }: { stores: Store[] }) {
                     />
                   </div>
                 ))}
+              </div>
+
+              {/* Store Image */}
+              <div className="space-y-2">
+                <p className="text-xs text-ink-muted uppercase tracking-wider font-medium">Store Image</p>
+
+                {/* Preview */}
+                {editing.image_url && (
+                  <div className="relative h-40 rounded-xl overflow-hidden bg-surface border border-divider group">
+                    <Image src={editing.image_url} alt="Store preview" fill className="object-cover" sizes="500px" />
+                    <button
+                      type="button"
+                      onClick={() => setEditing(prev => ({ ...prev!, image_url: null }))}
+                      className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload / URL toggle */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setUrlMode(false); fileInputRef.current?.click() }}
+                    disabled={uploading}
+                    className="flex items-center gap-2 px-3 py-2 border border-divider rounded-lg text-xs text-ink-muted hover:border-teal hover:text-teal transition-colors disabled:opacity-60"
+                  >
+                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                    {uploading ? 'Uploading…' : 'Upload Photo'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUrlMode(v => !v)}
+                    className="flex items-center gap-2 px-3 py-2 border border-divider rounded-lg text-xs text-ink-muted hover:border-teal hover:text-teal transition-colors"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" />
+                    Paste URL
+                  </button>
+                </div>
+
+                {/* URL input */}
+                {urlMode && (
+                  <input
+                    type="url"
+                    value={editing.image_url ?? ''}
+                    onChange={e => setEditing(prev => ({ ...prev!, image_url: e.target.value || null }))}
+                    placeholder="https://res.cloudinary.com/..."
+                    className="w-full border border-divider rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-teal transition-colors"
+                  />
+                )}
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f) }}
+                />
               </div>
 
               {/* Timings */}
