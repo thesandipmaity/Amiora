@@ -7,12 +7,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
     const { id } = await params
     const supabase = createServerClient()
-    const { images, variants, full_description, tag_ids, ...rest } = await req.json()
+    const { images, variants, full_description, tag_ids, faqs, ...rest } = await req.json()
 
     // Map form field → DB column
     const product = {
       ...rest,
       ...(full_description !== undefined && { description: full_description }),
+      ...(Array.isArray(faqs) && { faqs: faqs.filter((f: { question: string; answer: string }) => f.question && f.answer) }),
     }
 
     // Remove any undefined / form-only keys that don't exist in DB

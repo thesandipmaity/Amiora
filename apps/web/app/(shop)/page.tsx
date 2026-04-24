@@ -29,6 +29,7 @@ import { Testimonials }        from '@/components/sections/Testimonials'
 import { BlogPreview }         from '@/components/sections/BlogPreview'
 import { StoreLocatorTeaser }   from '@/components/sections/StoreLocatorTeaser'
 import { StoreCitiesSection }   from '@/components/sections/StoreCitiesSection'
+import { FaqSection }           from '@/components/sections/FaqSection'
 import { calculateVariantPrice } from '@/lib/pricing/calculator'
 import { getLatestPrices }     from '@/lib/pricing/engine'
 
@@ -43,6 +44,7 @@ export default async function HomePage() {
     { data: testimonials },
     { data: blogs },
     { data: stores },
+    { data: siteFaqs },
     prices,
   ] = await Promise.all([
     supabase.from('collections').select('id,name,slug,banner_url,description').eq('is_active', true).order('sort_order').limit(4),
@@ -51,6 +53,7 @@ export default async function HomePage() {
     supabase.from('testimonials').select('id,name,location,quote,rating').eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('blogs').select('id,title,slug,excerpt,cover_url,tags,published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),
     supabase.from('stores').select('id, city, image_url').eq('is_active', true).order('city'),
+    supabase.from('site_faqs').select('id, question, answer').eq('is_active', true).order('sort_order').order('created_at'),
     getLatestPrices(),
   ])
 
@@ -119,6 +122,7 @@ export default async function HomePage() {
       <Testimonials testimonials={testimonials ?? []} />
       <BlogPreview posts={blogs ?? []} />
       <StoreCitiesSection cities={citiesData} />
+      <FaqSection faqs={(siteFaqs ?? []) as { id: string; question: string; answer: string }[]} />
       <StoreLocatorTeaser storeCount={storeCount} />
     </>
   )

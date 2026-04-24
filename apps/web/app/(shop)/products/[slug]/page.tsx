@@ -4,6 +4,7 @@ import { createServerClient } from '@amiora/database'
 import { ProductDetailClient } from '@/components/product/ProductDetailClient'
 import { ProductCard }         from '@/components/product/ProductCard'
 import { ReviewsSection }      from '@/components/product/ReviewsSection'
+import { ProductFAQ }          from '@/components/product/ProductFAQ'
 import { calculateVariantPrice } from '@/lib/pricing/calculator'
 import { getLatestPrices }       from '@/lib/pricing/engine'
 
@@ -49,7 +50,7 @@ export default async function ProductPage({ params }: Props) {
     supabase
       .from('products')
       .select(`
-        id, name, slug, short_description, description, making_charge_pct,
+        id, name, slug, short_description, description, making_charge_pct, faqs,
         collection:collections(id, name, slug),
         category:categories(id, name, slug),
         product_images(id, url, alt_text, sort_order, variant_id, is_primary),
@@ -275,6 +276,8 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      <ProductFAQ faqs={(product.faqs as { question: string; answer: string }[] | null) ?? []} />
 
       <ReviewsSection
         reviews={safeReviews}

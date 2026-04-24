@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Package, Layers, ShoppingBag, Users, MessageSquare,
   Star, FileText, Quote, MapPin, Settings, ChevronRight, LogOut, Bell,
-  TrendingUp, Ticket
+  TrendingUp, Ticket, HelpCircle
 } from 'lucide-react'
 import { createBrowserClient } from '@amiora/database'
 import { useNotificationStore } from '@/stores/notificationStore'
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/testimonials', label: 'Testimonials',icon: Quote },
   { href: '/stores',       label: 'Stores',      icon: MapPin },
   { href: '/coupons',      label: 'Coupons',     icon: Ticket },
+  { href: '/faqs',         label: 'FAQs',        icon: HelpCircle },
   { href: '/pricing',      label: 'Pricing',     icon: TrendingUp },
   { href: '/settings',     label: 'Settings',    icon: Settings },
 ]

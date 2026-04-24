@@ -76,6 +76,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 interface ImageItem { url: string; is_primary: boolean; hover: boolean }
+interface FaqItem  { question: string; answer: string }
 
 interface TagOption {
   id: string; name: string; slug: string; color?: string | null
@@ -95,6 +96,7 @@ interface Props {
     id?:             string
     description?:    string
     product_images?: { url: string; is_primary: boolean }[]
+    faqs?:           FaqItem[]
   }
 }
 
@@ -112,6 +114,7 @@ export function ProductForm({ collections, categories, tags, defaultValues }: Pr
   const [images, setImages] = useState<ImageItem[]>(() =>
     (defaultValues?.product_images ?? []).map(img => ({ ...img, hover: false }))
   )
+  const [faqs, setFaqs]     = useState<FaqItem[]>(() => defaultValues?.faqs ?? [])
   const [saving, setSaving] = useState(false)
   const [imgUrl, setImgUrl] = useState('')
   const { uploading, uploadFiles } = useCloudinaryUpload('amiora/products')
@@ -184,7 +187,7 @@ export function ProductForm({ collections, categories, tags, defaultValues }: Pr
   const onSubmit = useCallback(async (data: FormData) => {
     setSaving(true)
     try {
-      const payload  = { ...data, images, tag_ids: watch('tag_ids') ?? [] }
+      const payload  = { ...data, images, faqs, tag_ids: watch('tag_ids') ?? [] }
       const isEdit   = !!defaultValues?.id
       const url      = isEdit ? `/api/products/${defaultValues!.id}` : '/api/products'
       const method   = isEdit ? 'PATCH' : 'POST'
@@ -507,7 +510,55 @@ export function ProductForm({ collections, categories, tags, defaultValues }: Pr
         </button>
       </FormSection>
 
-      {/* ── Section 5: SEO ───────────────────────────────────────────── */}
+      {/* ── Section 5: FAQs ──────────────────────────────────────────── */}
+      <FormSection title="FAQs (Product Page)">
+        <p className="text-xs text-ink-faint -mt-2">Shown as accordion on the product page. Add as many as needed.</p>
+        <div className="space-y-3">
+          {faqs.map((faq, i) => (
+            <div key={i} className="border border-divider rounded-xl p-4 space-y-3 bg-surface/50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-ink-muted uppercase tracking-wider">FAQ #{i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => setFaqs(f => f.filter((_, idx) => idx !== i))}
+                  className="p-1 text-ink-faint hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-ink-muted uppercase tracking-wider">Question</label>
+                <input
+                  type="text"
+                  value={faq.question}
+                  onChange={e => setFaqs(f => f.map((item, idx) => idx === i ? { ...item, question: e.target.value } : item))}
+                  placeholder="e.g. What is the purity of this ring?"
+                  className="w-full border border-divider rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-teal bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-ink-muted uppercase tracking-wider">Answer</label>
+                <textarea
+                  value={faq.answer}
+                  onChange={e => setFaqs(f => f.map((item, idx) => idx === i ? { ...item, answer: e.target.value } : item))}
+                  placeholder="e.g. This ring is available in 18K and 22K gold purity."
+                  rows={3}
+                  className="w-full border border-divider rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-teal bg-white resize-none"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setFaqs(f => [...f, { question: '', answer: '' }])}
+          className="flex items-center gap-1.5 text-sm text-teal hover:text-deep-teal transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add FAQ
+        </button>
+      </FormSection>
+
+      {/* ── Section 6: SEO ───────────────────────────────────────────── */}
       <FormSection title="SEO">
         <div className="space-y-3">
           <Field label="Meta Title">

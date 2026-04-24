@@ -4,12 +4,13 @@ import { createServerClient } from '@amiora/database'
 export async function POST(req: NextRequest) {
   try {
     const supabase = createServerClient()
-    const { images, variants, full_description, tag_ids, ...rest } = await req.json()
+    const { images, variants, full_description, tag_ids, faqs, ...rest } = await req.json()
 
     // Map form field → DB column
     const product = {
       ...rest,
       ...(full_description !== undefined && { description: full_description }),
+      faqs: Array.isArray(faqs) ? faqs.filter((f: { question: string; answer: string }) => f.question && f.answer) : [],
     }
 
     // Remove empty strings so DB defaults apply
