@@ -72,11 +72,14 @@ export default async function ProductPage({ params }: Props) {
   }
   if (!product) notFound()
 
-  // ── Round 2: Reviews + smart-pairs run IN PARALLEL (need product.id) ───────
+  // ── Round 2: Reviews + smart-pairs + you-may-also-like (all parallel) ───────
   type SmartPairRow = { paired_product_id: string }
   type ReviewRow    = { id: string; reviewer_name: string | null; rating: number; title: string | null; body: string | null; created_at: string; is_verified_purchase: boolean }
+  type SuggestedProduct = { id: string; name: string; slug: string; making_charge_pct: number; product_images: { url: string; is_primary: boolean; is_hover: boolean; alt_text: string | null }[]; product_variants: { id: string; purity: string; weight_grams: number | null; gem_price_override: number | null; stock_status: string }[] }
 
-  const [reviewsRes, smartPairsRes] = await Promise.all([
+  const currentCollectionId = (product.collection as unknown as { id: string } | null)?.id ?? null
+
+  const [reviewsRes, smartPairsRes, suggestedRes] = await Promise.all([
     Promise.resolve(
       supabase
         .from('reviews')
@@ -94,10 +97,29 @@ export default async function ProductPage({ params }: Props) {
         .limit(6)
     ).then(r => ((r.data ?? []) as SmartPairRow[]).map(x => x.paired_product_id).filter(Boolean))
      .catch(() => [] as string[]),
+
+    // Fetch products from OTHER collections (not the current product's collection)
+    Promise.resolve(
+      currentCollectionId
+        ? supabase
+            .from('products')
+            .select('id, name, slug, making_charge_pct, product_images(url, is_primary, is_hover, alt_text), product_variants(id, purity, weight_grams, gem_price_override, stock_status)')
+            .neq('collection_id', currentCollectionId)
+            .neq('id', product.id)
+            .eq('is_active', true)
+            .limit(8)
+        : supabase
+            .from('products')
+            .select('id, name, slug, making_charge_pct, product_images(url, is_primary, is_hover, alt_text), product_variants(id, purity, weight_grams, gem_price_override, stock_status)')
+            .neq('id', product.id)
+            .eq('is_active', true)
+            .limit(8)
+    ).then(r => (r.data ?? []) as SuggestedProduct[]).catch(() => [] as SuggestedProduct[]),
   ])
 
   const reviews             = reviewsRes
   const smartPairProductIds = smartPairsRes
+  const suggestedProducts   = suggestedRes
 
   // ── Round 3: Paired products (conditional, smart-pair IDs known) ────────────
   type PairedProduct = { id: string; name: string; slug: string; making_charge_pct: number; product_images: { url: string; is_primary: boolean }[]; product_variants: { purity: string; weight_grams: number | null; gem_price_override: number | null }[] }
@@ -118,6 +140,21 @@ export default async function ProductPage({ params }: Props) {
   // ── Smart pairs with prices ───────────────────────────────────────────────
   const smartPairs = pairedProducts.map(p => {
     const v = p.product_variants?.[0]
+    const basePrice = v?.weight_grams
+      ? calculateVariantPrice({
+          weightGrams:         v.weight_grams,
+          purity:              v.purity,
+          livePricePerGram999: v.purity === '92.5' ? silverPrice : goldPrice,
+          makingChargePct:     p.making_charge_pct,
+          gemPriceOverride:    v.gem_price_override,
+        }).finalPrice
+      : 0
+    return { ...p, basePrice }
+  }) as Parameters<typeof ProductCard>[0]['product'][]
+
+  // ── You May Also Like — products from other collections with prices ──────
+  const youMayAlsoLike = suggestedProducts.map(p => {
+    const v = p.product_variants?.find(v => v.stock_status !== 'out_of_stock') ?? p.product_variants?.[0]
     const basePrice = v?.weight_grams
       ? calculateVariantPrice({
           weightGrams:         v.weight_grams,
@@ -244,6 +281,22 @@ export default async function ProductPage({ params }: Props) {
         total={safeReviews.length}
         avgRating={avgRating}
       />
+
+      {youMayAlsoLike.length > 0 && (
+        <section className="section-x py-14 border-t border-divider">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8">
+            <div>
+              <p className="text-2xs uppercase tracking-widest2 text-teal mb-2">Explore More</p>
+              <h2 className="font-display text-display-xl text-ink">You May Also Like</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {youMayAlsoLike.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
     </>
   )
 }
