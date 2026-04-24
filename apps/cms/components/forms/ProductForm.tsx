@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -42,6 +42,92 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       className={`w-full border border-divider rounded-lg px-3 py-2 text-sm text-ink outline-none focus:border-teal bg-white ${props.className ?? ''}`}
     />
+  )
+}
+
+// ComboSelect — dropdown with "Custom…" fallback text input
+// Stores custom values and surfaces them as options in future rows
+function ComboSelect({
+  value,
+  onChange,
+  options,
+  customOptions = [],
+  onAddCustom,
+  placeholder = '—',
+  className = '',
+}: {
+  value:          string
+  onChange:       (v: string) => void
+  options:        string[]
+  customOptions?: string[]
+  onAddCustom?:  (v: string) => void
+  placeholder?:   string
+  className?:     string
+}) {
+  const CUSTOM_SENTINEL = '__custom__'
+  const allOptions = useMemo(() => {
+    const set = new Set([...options, ...customOptions])
+    return Array.from(set)
+  }, [options, customOptions])
+
+  // Determine if current value is a custom one
+  const isCustom = value && !options.includes(value)
+  const [showInput, setShowInput] = useState(isCustom)
+  const [draft, setDraft]         = useState(isCustom ? value : '')
+
+  function handleSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (e.target.value === CUSTOM_SENTINEL) {
+      setShowInput(true)
+      setDraft('')
+      onChange('')
+    } else {
+      setShowInput(false)
+      onChange(e.target.value)
+    }
+  }
+
+  function commitCustom() {
+    const v = draft.trim()
+    if (!v) return
+    onAddCustom?.(v)
+    onChange(v)
+  }
+
+  return (
+    <div className={`space-y-1 ${className}`}>
+      <select
+        value={showInput ? CUSTOM_SENTINEL : (value || '')}
+        onChange={handleSelect}
+        className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-full"
+      >
+        <option value="">{placeholder}</option>
+        {allOptions.map(o => <option key={o} value={o}>{o}</option>)}
+        <option value={CUSTOM_SENTINEL}>✏️ Custom…</option>
+      </select>
+      {showInput && (
+        <div className="flex gap-1">
+          <input
+            type="text"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), commitCustom())}
+            placeholder="Type & press Enter"
+            className="flex-1 border border-teal rounded px-2 py-1 text-xs outline-none bg-white min-w-0"
+            autoFocus
+          />
+          <button
+            type="button"
+            onClick={commitCustom}
+            className="px-2 py-1 bg-teal text-white text-xs rounded hover:bg-deep-teal"
+          >✓</button>
+          <button
+            type="button"
+            onClick={() => { setShowInput(false); setDraft(''); onChange('') }}
+            className="px-2 py-1 border border-divider text-xs rounded hover:bg-surface"
+          >✕</button>
+        </div>
+      )}
+    </div>
   )
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +200,10 @@ export function ProductForm({ collections, categories, tags, defaultValues }: Pr
   const [images, setImages] = useState<ImageItem[]>(() =>
     (defaultValues?.product_images ?? []).map(img => ({ ...img, hover: false }))
   )
-  const [faqs, setFaqs]     = useState<FaqItem[]>(() => defaultValues?.faqs ?? [])
+  const [faqs, setFaqs]         = useState<FaqItem[]>(() => defaultValues?.faqs ?? [])
+  const [customPurities, setCustomPurities]     = useState<string[]>([])
+  const [customColours,  setCustomColours]       = useState<string[]>([])
+  const [customGemCuts,  setCustomGemCuts]       = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [imgUrl, setImgUrl] = useState('')
   const { uploading, uploadFiles } = useCloudinaryUpload('amiora/products')
@@ -457,29 +546,41 @@ export function ProductForm({ collections, categories, tags, defaultValues }: Pr
             </thead>
             <tbody className="divide-y divide-divider">
               {variants.map((v, i) => (
-                <tr key={v.id} className="bg-white">
+                <tr key={v.id} className="bg-white align-top">
                   <td className="px-2 py-2">
                     <select {...register(`variants.${i}.metal_type`)} className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-full">
                       {METAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </td>
-                  <td className="px-2 py-2">
-                    <select {...register(`variants.${i}.purity`)} className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-full">
-                      <option value="">—</option>
-                      {PURITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                  <td className="px-2 py-2 min-w-[90px]">
+                    <ComboSelect
+                      value={watch(`variants.${i}.purity`) ?? ''}
+                      onChange={val => setValue(`variants.${i}.purity`, val, { shouldDirty: true })}
+                      options={PURITIES}
+                      customOptions={customPurities}
+                      onAddCustom={v => setCustomPurities(p => p.includes(v) ? p : [...p, v])}
+                      placeholder="Purity"
+                    />
                   </td>
-                  <td className="px-2 py-2">
-                    <select {...register(`variants.${i}.gold_variant`)} className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-full">
-                      <option value="">—</option>
-                      {GOLD_VARIANTS.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                  <td className="px-2 py-2 min-w-[90px]">
+                    <ComboSelect
+                      value={watch(`variants.${i}.gold_variant`) ?? ''}
+                      onChange={val => setValue(`variants.${i}.gold_variant`, val, { shouldDirty: true })}
+                      options={GOLD_VARIANTS}
+                      customOptions={customColours}
+                      onAddCustom={v => setCustomColours(p => p.includes(v) ? p : [...p, v])}
+                      placeholder="Colour"
+                    />
                   </td>
-                  <td className="px-2 py-2">
-                    <select {...register(`variants.${i}.gem_cut`)} className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-full">
-                      <option value="">—</option>
-                      {GEM_CUTS.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+                  <td className="px-2 py-2 min-w-[90px]">
+                    <ComboSelect
+                      value={watch(`variants.${i}.gem_cut`) ?? ''}
+                      onChange={val => setValue(`variants.${i}.gem_cut`, val, { shouldDirty: true })}
+                      options={GEM_CUTS}
+                      customOptions={customGemCuts}
+                      onAddCustom={v => setCustomGemCuts(p => p.includes(v) ? p : [...p, v])}
+                      placeholder="Gem Cut"
+                    />
                   </td>
                   <td className="px-2 py-2">
                     <input type="number" step="0.01" {...register(`variants.${i}.weight_grams`, { valueAsNumber: true })} className="border border-divider rounded px-2 py-1 text-xs outline-none focus:border-teal bg-white w-20" />

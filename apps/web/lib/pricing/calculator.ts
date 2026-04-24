@@ -22,6 +22,50 @@ export const PURITY_MULTIPLIERS: Record<SupportedPurity, number> = {
   '92.5': 0.925,     // Sterling Silver
 }
 
+/**
+ * Smart purity parser — handles custom purities like:
+ * "9kt", "9K", "21k", "750", "585", "375", "0.75", "99.9%" etc.
+ * Returns a multiplier between 0 and 1.
+ */
+export function parsePurityMultiplier(purity: string): number {
+  const raw = purity.toLowerCase().trim()
+
+  // Standard lookup first
+  const known = PURITY_MULTIPLIERS[raw as SupportedPurity]
+  if (known !== undefined) return known
+
+  // Strip 'k', 'kt', 'karat' suffix → karat gold  e.g. "9kt" → 9/24
+  const karatMatch = raw.match(/^(\d+(?:\.\d+)?)\s*k(?:t|arat)?$/)
+  if (karatMatch) {
+    const k = parseFloat(karatMatch[1])
+    if (k > 0 && k <= 24) return k / 24
+  }
+
+  // Millesimal fineness (3-digit): 999, 750, 585, 375 etc.
+  const finessMatch = raw.match(/^(\d{3})$/)
+  if (finessMatch) {
+    const f = parseInt(finessMatch[1])
+    if (f > 0 && f <= 999) return f / 1000
+  }
+
+  // Percentage: "92.5%", "99.9%" → divide by 100
+  const pctMatch = raw.match(/^(\d+(?:\.\d+)?)\s*%$/)
+  if (pctMatch) {
+    const p = parseFloat(pctMatch[1])
+    if (p > 0 && p <= 100) return p / 100
+  }
+
+  // Plain decimal: "0.75", "0.925"
+  const decimalMatch = raw.match(/^0?\.\d+$/)
+  if (decimalMatch) {
+    const d = parseFloat(raw)
+    if (d > 0 && d <= 1) return d
+  }
+
+  // Fallback — return 1 (pure) so price is not broken
+  return 1
+}
+
 export interface PriceInput {
   /** Gross metal weight in grams */
   weightGrams: number
@@ -59,8 +103,7 @@ export function calculateVariantPrice(input: PriceInput): PriceBreakdown {
     gemPriceOverride = null,
   } = input
 
-  const purityKey = purity.toLowerCase() as SupportedPurity
-  const purityMultiplier = PURITY_MULTIPLIERS[purityKey] ?? 1
+  const purityMultiplier = parsePurityMultiplier(purity)
 
   const purePrice       = weightGrams * livePricePerGram999
   const baseMetalPrice  = purePrice * purityMultiplier
