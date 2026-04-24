@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { MapPin, Phone, Clock, Navigation, Loader2, Search } from 'lucide-react'
 import { stagger, fadeUp } from '@/lib/animations'
@@ -54,10 +55,17 @@ function openFallback(store: Store) {
 }
 
 export function StoresPageClient({ stores }: { stores: Store[] }) {
-  const [search, setSearch]        = useState('')
+  const searchParams               = useSearchParams()
+  const [search, setSearch]        = useState(searchParams.get('city') ?? '')
   const [demoStore, setDemoStore]  = useState<string | null>(null)
   const [expandedId, setExpandedId]= useState<string | null>(null)
   const [loadingDir, setLoadingDir]= useState<string | null>(null)
+
+  // Sync search when city query param changes (e.g. from StoreCitiesSection link)
+  useEffect(() => {
+    const city = searchParams.get('city')
+    if (city) setSearch(city)
+  }, [searchParams])
 
   function handleGetDirections(store: Store) {
     if (!navigator.geolocation) {

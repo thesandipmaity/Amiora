@@ -27,7 +27,8 @@ import { MaterialShowcase }    from '@/components/sections/MaterialShowcase'
 import { CustomizationCTA }    from '@/components/sections/CustomizationCTA'
 import { Testimonials }        from '@/components/sections/Testimonials'
 import { BlogPreview }         from '@/components/sections/BlogPreview'
-import { StoreLocatorTeaser }  from '@/components/sections/StoreLocatorTeaser'
+import { StoreLocatorTeaser }   from '@/components/sections/StoreLocatorTeaser'
+import { StoreCitiesSection }   from '@/components/sections/StoreCitiesSection'
 import { calculateVariantPrice } from '@/lib/pricing/calculator'
 import { getLatestPrices }     from '@/lib/pricing/engine'
 
@@ -49,7 +50,7 @@ export default async function HomePage() {
     supabase.from('products').select('id,name,slug,making_charge_pct,product_images(*),product_variants(*)').eq('is_active', true).eq('is_featured', true).order('sort_order').limit(10),
     supabase.from('testimonials').select('id,name,location,quote,rating').eq('is_featured', true).order('sort_order').limit(8),
     supabase.from('blogs').select('id,title,slug,excerpt,cover_url,tags,published_at').eq('is_published', true).order('published_at', { ascending: false }).limit(3),
-    supabase.from('stores').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    supabase.from('stores').select('id, city, image_url').eq('is_active', true).order('city'),
     getLatestPrices(),
   ])
 
@@ -74,7 +75,26 @@ export default async function HomePage() {
   const newArrivals = attachPrice(newArrivalRows)
   const bestSellers = attachPrice(bestSellerRows)
 
-  const storeCount = (stores as unknown as { count?: number })?.count ?? 3
+  // Group stores by city for the city cards section
+  type StoreRow = { id: string; city: string; image_url: string | null }
+  const storeRows   = (stores ?? []) as StoreRow[]
+  const storeCount  = storeRows.length
+
+  const cityMap = new Map<string, { count: number; image_url: string | null }>()
+  for (const s of storeRows) {
+    const existing = cityMap.get(s.city)
+    if (existing) {
+      existing.count++
+      if (!existing.image_url && s.image_url) existing.image_url = s.image_url
+    } else {
+      cityMap.set(s.city, { count: 1, image_url: s.image_url })
+    }
+  }
+  const citiesData = Array.from(cityMap.entries()).map(([city, v]) => ({
+    city,
+    count:     v.count,
+    image_url: v.image_url,
+  }))
 
   return (
     <>
@@ -98,6 +118,7 @@ export default async function HomePage() {
       <CustomizationCTA />
       <Testimonials testimonials={testimonials ?? []} />
       <BlogPreview posts={blogs ?? []} />
+      <StoreCitiesSection cities={citiesData} />
       <StoreLocatorTeaser storeCount={storeCount} />
     </>
   )
